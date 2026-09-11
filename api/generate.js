@@ -14,60 +14,45 @@ export default async function handler(req, res) {
   }
 
   try {
-    // ============================
-    // VERCEL BLOB CLIENT TOKEN
-    // ============================
+    // BLOB CLIENT TOKEN
     if (req.query.action === "upload") {
-      let body = req.body;
-
-      if (typeof body === "string") {
-        body = JSON.parse(body);
-      }
+      const body =
+        typeof req.body === "string"
+          ? JSON.parse(req.body)
+          : req.body;
 
       const result = await handleUpload({
         body,
         request: req,
-
-        onBeforeGenerateToken: async (pathname) => {
-          return {
-            allowedContentTypes: [
-              "video/mp4",
-              "video/webm",
-              "video/quicktime",
-              "audio/mpeg",
-              "audio/mp3",
-              "audio/wav",
-              "audio/x-wav",
-              "audio/mp4",
-              "audio/aac",
-              "audio/ogg",
-            ],
-            maximumSizeInBytes: 500 * 1024 * 1024,
-            addRandomSuffix: true,
-
-            tokenPayload: JSON.stringify({
-              pathname,
-            }),
-          };
-        },
-
+        onBeforeGenerateToken: async () => ({
+          allowedContentTypes: [
+            "video/mp4",
+            "video/webm",
+            "video/quicktime",
+            "audio/mpeg",
+            "audio/mp3",
+            "audio/wav",
+            "audio/x-wav",
+            "audio/mp4",
+            "audio/aac",
+            "audio/ogg",
+          ],
+          maximumSizeInBytes: 500 * 1024 * 1024,
+          addRandomSuffix: true,
+        }),
         onUploadCompleted: async ({ blob }) => {
-          console.log("UPLOAD BERHASIL:", blob.url);
+          console.log("UPLOAD:", blob.url);
         },
       });
 
       return res.status(200).json(result);
     }
 
-    // ============================
-    // REPLICATE LIP-SYNC
-    // ============================
-
-    let body = req.body;
-
-    if (typeof body === "string") {
-      body = JSON.parse(body);
-    }
+    // REPLICATE
+    const body =
+      typeof req.body === "string"
+        ? JSON.parse(req.body)
+        : req.body;
 
     const { video, audio } = body || {};
 
@@ -78,9 +63,8 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log("Mengirim video ke Replicate...");
-    console.log("Video URL:", video);
-    console.log("Audio URL:", audio);
+    console.log("Video:", video);
+    console.log("Audio:", audio);
 
     const output = await replicate.run("sync/lipsync-2", {
       input: {
@@ -94,7 +78,7 @@ export default async function handler(req, res) {
 
     if (output && typeof output.url === "function") {
       outputUrl = output.url();
-    } else if (output && output.url) {
+    } else if (output?.url) {
       outputUrl = output.url;
     }
 
