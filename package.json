@@ -1,1 +1,5 @@
-
+{
+  "dependencies": {
+    "replicate": "^1.0.0"
+  }
+}
