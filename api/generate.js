@@ -14,38 +14,21 @@ export default async function handler(req, res) {
   }
 
   try {
-    // =========================
-    // VERCEL BLOB CLIENT UPLOAD
-    // =========================
+    // ============================
+    // VERCEL BLOB CLIENT TOKEN
+    // ============================
     if (req.query.action === "upload") {
       let body = req.body;
 
-      // Pastikan body berbentuk object
       if (typeof body === "string") {
-        try {
-          body = JSON.parse(body);
-        } catch {
-          return res.status(400).json({
-            ok: false,
-            message: "Body upload tidak valid.",
-          });
-        }
+        body = JSON.parse(body);
       }
 
-      if (!body) {
-        return res.status(400).json({
-          ok: false,
-          message: "Body upload kosong.",
-        });
-      }
-
-      const blobResponse = await handleUpload({
+      const result = await handleUpload({
         body,
         request: req,
 
         onBeforeGenerateToken: async (pathname) => {
-          console.log("Membuat Blob token:", pathname);
-
           return {
             allowedContentTypes: [
               "video/mp4",
@@ -59,9 +42,7 @@ export default async function handler(req, res) {
               "audio/aac",
               "audio/ogg",
             ],
-
             maximumSizeInBytes: 500 * 1024 * 1024,
-
             addRandomSuffix: true,
 
             tokenPayload: JSON.stringify({
@@ -71,16 +52,16 @@ export default async function handler(req, res) {
         },
 
         onUploadCompleted: async ({ blob }) => {
-          console.log("Blob upload selesai:", blob.url);
+          console.log("UPLOAD BERHASIL:", blob.url);
         },
       });
 
-      return res.status(200).json(blobResponse);
+      return res.status(200).json(result);
     }
 
-    // =========================
+    // ============================
     // REPLICATE LIP-SYNC
-    // =========================
+    // ============================
 
     let body = req.body;
 
@@ -97,9 +78,9 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log("Mulai Replicate...");
-    console.log("Video:", video);
-    console.log("Audio:", audio);
+    console.log("Mengirim video ke Replicate...");
+    console.log("Video URL:", video);
+    console.log("Audio URL:", audio);
 
     const output = await replicate.run("sync/lipsync-2", {
       input: {
@@ -117,8 +98,6 @@ export default async function handler(req, res) {
       outputUrl = output.url;
     }
 
-    console.log("Video selesai:", outputUrl);
-
     return res.status(200).json({
       ok: true,
       status: "completed",
@@ -126,11 +105,11 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error("GENERATE ERROR:", error);
+    console.error("ERROR:", error);
 
     return res.status(500).json({
       ok: false,
-      message: error?.message || "Gagal membuat video.",
+      message: error?.message || "Terjadi kesalahan server.",
     });
   }
 }
