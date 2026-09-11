@@ -11,23 +11,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
-
     // 1. PENANGANAN UPLOAD VERCEL BLOB
     if (req.query.action === "upload") {
-      // Konstruksi Request Web Standard dari req Node.js
-      const protocol = req.headers["x-forwarded-proto"] || "https";
-      const host = req.headers["x-forwarded-host"] || req.headers.host;
-      const webRequest = new Request(`${protocol}://${host}${req.url}`, {
-        method: req.method,
-        headers: new Headers(req.headers),
-        body: JSON.stringify(body),
-      });
-
       const jsonResponse = await handleUpload({
-        body,
-        request: webRequest, // Gunakan webRequest yang di-construct
-        token: process.env.BLOB_READ_WRITE_TOKEN,
+        body: req.body,
+        request: req,
+        token: process.env.BLOB_READ_WRITE_TOKEN, // Memaksa penggunaan token secara eksplisit
         onBeforeGenerateToken: async () => ({
           allowedContentTypes: [
             "video/mp4", "video/webm", "video/quicktime",
@@ -46,6 +35,7 @@ export default async function handler(req, res) {
     }
 
     // 2. PENANGANAN REPLICATE
+    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
     const { video, audio } = body;
 
     if (!video || !audio) {
