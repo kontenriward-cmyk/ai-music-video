@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Music Video Generator</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0b0812;color:#eee;font:14px Arial,sans-serif}
+.wrap{max-width:1200px;margin:auto;padding:28px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:25px}
+.logo{font-size:22px;font-weight:800}.badge{padding:7px 11px;border:1px solid #342541;border-radius:20px;color:#c7a9ff}
+.grid{display:grid;grid-template-columns:1.4fr .9fr;gap:18px}.card{background:#120d1c;border:1px solid #2b2036;border-radius:18px;padding:20px}
+h1{font-size:30px;margin:0 0 8px}.sub{color:#988da5;margin-bottom:22px}
+label{display:block;margin:15px 0 8px;font-weight:700}.upload{border:1.5px dashed #59406e;border-radius:14px;padding:28px;text-align:center;background:#0e0a16}
+input[type=file]{width:100%;color:#aaa}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.opts{display:flex;gap:8px;flex-wrap:wrap}.opt{border:1px solid #392b47;background:#171020;color:#ddd;padding:10px 13px;border-radius:10px;cursor:pointer}.opt.active{border-color:#a66cff;background:#27163e;color:white}
+textarea,select{width:100%;background:#0d0914;border:1px solid #392b47;color:#eee;border-radius:11px;padding:12px}
+button{border:0;border-radius:12px;padding:14px 18px;background:linear-gradient(90deg,#7c3cff,#c45cff);color:#fff;font-weight:800;cursor:pointer;width:100%;margin-top:20px}
+button:disabled{opacity:.5;cursor:not-allowed}.preview{min-height:390px;background:#09070d;border-radius:14px;display:flex;align-items:center;justify-content:center;overflow:hidden}.preview video{max-width:100%;max-height:520px}.empty{color:#756b80;text-align:center;padding:40px}.status{margin-top:12px;color:#bba9c9;line-height:1.6}.files{margin-top:8px;color:#a99daf;font-size:12px}
+.progress{height:8px;background:#241b2d;border-radius:20px;overflow:hidden;margin-top:12px}.bar{height:100%;width:0;background:#a66cff;transition:width .3s}
+small{color:#81778a}@media(max-width:800px){.grid{grid-template-columns:1fr}.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="top"><div class="logo">✦ AI Music Video</div><div class="badge">MVP • Lip-Sync Ready</div></div>
+<div class="grid">
+<section class="card">
+<h1>AI Music Video Generator</h1><div class="sub">Upload video/foto + lagu, pilih kualitas, lalu generate.</div>
+
+<label>Video / Foto</label>
+<div class="upload"><input id="media" type="file" accept="video/*,image/*" multiple><div class="files" id="mediaList">Belum ada media.</div></div>
+
+<label>Lagu / Audio</label>
+<div class="upload"><input id="audio" type="file" accept="audio/*"><div class="files" id="audioList">Belum ada audio.</div></div>
+
+<label>Lip-Sync</label>
+<div class="opts"><div class="opt active" id="lipOn">✓ Aktif</div><div class="opt" id="lipOff">Nonaktif</div></div>
+
+<label>Resolution</label>
+<div class="opts" id="res"><div class="opt">720p</div><div class="opt active">1080p</div><div class="opt">2K</div><div class="opt">4K</div></div>
+
+<label>Aspect Ratio</label>
+<div class="opts" id="ratio"><div class="opt active">9:16</div><div class="opt">16:9</div><div class="opt">1:1</div></div>
+
+<label>Style</label>
+<select id="style"><option>Natural Performance</option><option>Cinematic</option><option>Music Video</option></select>
+
+<label>Prompt <small>(opsional)</small></label>
+<textarea id="prompt" rows="4" placeholder="Contoh: cinematic performance, natural facial movement..."></textarea>
+
+<button id="generate">Generate AI Video</button>
+<div class="progress"><div class="bar" id="bar"></div></div>
+<div class="status" id="status">Siap.</div>
+</section>
+
+<section class="card">
+<label style="margin-top:0">Preview</label>
+<div class="preview" id="preview"><div class="empty">Hasil video akan muncul di sini.</div></div>
+<button id="download" style="display:none">Download MP4 / WebM</button>
+</section>
+</div>
+</div>
+<script>
+const media=document.getElementById('media'),audio=document.getElementById('audio');
+media.onchange=()=>document.getElementById('mediaList').textContent=[...media.files].map(x=>x.name).join(', ')||'Belum ada media.';
+audio.onchange=()=>document.getElementById('audioList').textContent=audio.files[0]?.name||'Belum ada audio.';
+function choices(id){document.querySelectorAll('#'+id+' .opt').forEach(x=>x.onclick=()=>{document.querySelectorAll('#'+id+' .opt').forEach(y=>y.classList.remove('active'));x.classList.add('active')})}
+choices('res');choices('ratio');
+document.getElementById('lipOn').onclick=()=>{lipOn.classList.add('active');lipOff.classList.remove('active')};
+document.getElementById('lipOff').onclick=()=>{lipOff.classList.add('active');lipOn.classList.remove('active')};
+
+const gen=document.getElementById('generate'),bar=document.getElementById('bar'),status=document.getElementById('status'),preview=document.getElementById('preview'),dl=document.getElementById('download');
+gen.onclick=async()=>{
+ if(!media.files.length||!audio.files.length){status.textContent='Upload minimal 1 video/foto dan 1 lagu.';return}
+ gen.disabled=true; dl.style.display='none';
+ for(let p=10;p<=100;p+=10){await new Promise(r=>setTimeout(r,120));bar.style.width=p+'%';status.textContent=p<100?'Menyiapkan project...':'Demo render selesai.'}
+ // Demo uses first video directly. Real AI lip-sync requires backend/model.
+ const f=media.files[0];
+ if(f.type.startsWith('video/')){
+   const url=URL.createObjectURL(f);preview.innerHTML='<video controls autoplay loop src="'+url+'"></video>';
+   dl.style.display='block';dl.onclick=()=>{const a=document.createElement('a');a.href=url;a.download='ai-music-video-demo.webm';a.click()};
+ } else {
+   preview.innerHTML='<img style="max-width:100%;max-height:520px;object-fit:contain" src="'+URL.createObjectURL(f)+'">';
+   status.textContent='Foto berhasil dimuat. Untuk animasi + lip-sync AI asli, hubungkan backend AI.';
+ }
+ gen.disabled=false;
+};
+</script>
+</body></html>
