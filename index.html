@@ -17,11 +17,11 @@ label{display:block;font-weight:bold;margin:16px 0 8px}
 input[type=file],textarea,select{width:100%;background:#18181b;color:#fff;border:1px solid #333;border-radius:10px;padding:12px}
 textarea{min-height:100px;resize:vertical}
 .row{display:flex;gap:8px;flex-wrap:wrap}
-.chip{background:#18181b;color:#aaa;border:1px solid #333;padding:9px 14px;border-radius:9px;cursor:pointer}
+.chip{background:#18181b;color:#aaa;border:1px solid #333;padding:9px 14px;border-radius:9px}
 .chip.active{background:#fff;color:#000}
 .check{display:flex;gap:9px;align-items:center;margin:14px 0}
 .check input{width:18px;height:18px}
-button.generate{width:100%;margin-top:20px;padding:15px;border:0;border-radius:11px;background:#fff;color:#000;font-size:16px;font-weight:bold;cursor:pointer}
+button.generate{width:100%;margin-top:20px;padding:15px;border:0;border-radius:11px;background:#fff;color:#000;font-size:16px;font-weight:bold}
 button:disabled{opacity:.5}
 .screen{min-height:500px;background:#050505;border:1px solid #29292d;border-radius:14px;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .screen video,.screen img{max-width:100%;max-height:600px}
@@ -108,7 +108,10 @@ button:disabled{opacity:.5}
 </div>
 </div>
 
-<script>
+<script type="module">
+
+import { upload } from "https://cdn.jsdelivr.net/npm/@vercel/blob@2.0.0/+esm";
+
 const $=id=>document.getElementById(id);
 
 let resolution="720p";
@@ -128,15 +131,6 @@ function chips(id,setter){
 
 chips("res",v=>resolution=v);
 chips("ratio",v=>ratio=v);
-
-function fileToDataURL(file){
-  return new Promise((resolve,reject)=>{
-    const reader=new FileReader();
-    reader.onload=()=>resolve(reader.result);
-    reader.onerror=reject;
-    reader.readAsDataURL(file);
-  });
-}
 
 let previewURL=null;
 
@@ -186,35 +180,50 @@ $("generate").onclick=async()=>{
   }
 
   if(!mediaFile.type.startsWith("video/")){
-    alert("Untuk tahap ini gunakan VIDEO. Foto akan kita aktifkan setelahnya.");
+    alert("Untuk sementara gunakan VIDEO. Fitur foto kita aktifkan setelah lip-sync berhasil.");
     return;
   }
 
   $("generate").disabled=true;
-  $("status").textContent="Mengupload file ke AI...";
-  $("progress").style.width="20%";
+  $("result").style.display="none";
+  $("status").textContent="Mengupload video...";
+  $("progress").style.width="15%";
 
   try{
 
-    const video=await fileToDataURL(mediaFile);
+    const videoBlob=await upload(
+      mediaFile.name,
+      mediaFile,
+      {
+        access:"public",
+        handleUploadUrl:"/api/generate?action=upload"
+      }
+    );
 
     $("progress").style.width="45%";
+    $("status").textContent="Mengupload audio...";
 
-    const audio=await fileToDataURL(audioFile);
+    const audioBlob=await upload(
+      audioFile.name,
+      audioFile,
+      {
+        access:"public",
+        handleUploadUrl:"/api/generate?action=upload"
+      }
+    );
 
-    $("progress").style.width="65%";
-
-    const body={
-      video:video,
-      audio:audio
-    };
+    $("progress").style.width="70%";
+    $("status").textContent="Mengirim ke AI Lip-Sync...";
 
     const response=await fetch("/api/generate",{
       method:"POST",
       headers:{
         "Content-Type":"application/json"
       },
-      body:JSON.stringify(body)
+      body:JSON.stringify({
+        video:videoBlob.url,
+        audio:audioBlob.url
+      })
     });
 
     const data=await response.json();
@@ -224,14 +233,14 @@ $("generate").onclick=async()=>{
     }
 
     $("progress").style.width="100%";
-    $("status").textContent="Video selesai dibuat!";
+    $("status").textContent="Video AI selesai!";
 
     $("result").style.display="block";
 
     $("result").innerHTML=`
-      <b>AI Video berhasil dibuat.</b><br><br>
+      <b>🎬 Video berhasil dibuat!</b><br><br>
       <a href="${data.output}" target="_blank">
-        Buka / lihat video hasil AI
+        ▶️ Buka Video Hasil AI
       </a>
     `;
 
@@ -240,7 +249,7 @@ $("generate").onclick=async()=>{
     console.error(error);
 
     $("progress").style.width="0%";
-    $("status").textContent="Gagal membuat video.";
+    $("status").textContent="Gagal.";
 
     $("result").style.display="block";
     $("result").innerHTML=
@@ -252,6 +261,7 @@ $("generate").onclick=async()=>{
 
   }
 };
+
 </script>
 
 </body>
