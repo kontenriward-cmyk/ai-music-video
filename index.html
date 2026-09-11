@@ -1,1 +1,258 @@
-<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI Music Video Generator</title><style>:root{--bg:#08070d;--p:#110d1c;--l:#2a1e3b;--t:#f6f2ff;--m:#9d91b0;--a:#9b4dff}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 70% 0,#201034,#08070d 42%);color:var(--t);font:15px system-ui}.wrap{max-width:1180px;margin:auto;padding:28px 18px 60px}.top{display:flex;justify-content:space-between;margin-bottom:22px}.brand{font-weight:800;font-size:22px}.badge{font-size:11px;padding:7px 10px;border:1px solid #51346e;border-radius:999px}.grid{display:grid;grid-template-columns:1.05fr .95fr;gap:18px}.card{background:linear-gradient(180deg,#130e20,#0d0a14);border:1px solid var(--l);border-radius:18px;padding:20px}h1{font-size:28px;margin:0 0 5px}.sub,.small{color:var(--m)}.label{display:block;font-weight:700;margin:16px 0 8px}.drop{border:1px dashed #49355e;border-radius:12px;padding:14px;background:#0b0910}.drop input{width:100%}.fileinfo{color:var(--m);font-size:12px;margin-top:7px;white-space:pre-wrap}textarea,select{width:100%;background:#0a0810;border:1px solid #3a294e;color:#eee;border-radius:12px;padding:13px}textarea{min-height:125px}.row{display:flex;gap:8px;flex-wrap:wrap}.chip{border:1px solid #39284b;background:#0d0a14;color:#bbb0c9;padding:9px 12px;border-radius:10px}.chip.active{border-color:#a94fff;background:#26133a;color:white}.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}.toggle{display:flex;justify-content:space-between;border:1px solid #352643;border-radius:12px;padding:11px;background:#0b0910}.toggle input{accent-color:#a64dff;transform:scale(1.2)}button.generate{width:100%;margin-top:20px;border:0;border-radius:13px;padding:15px;font-weight:800;font-size:16px;color:white;background:linear-gradient(90deg,#7d35ff,#c64cff)}button:disabled{opacity:.5}.bar{height:7px;background:#1b1425;border-radius:99px;overflow:hidden;margin-top:9px}.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#843cff,#d352ff);transition:.4s}.screen{aspect-ratio:9/16;background:#050408;border-radius:13px;border:1px solid #241a31;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#6f647b}.screen video,.screen img{width:100%;height:100%;object-fit:contain}.result{margin-top:15px;padding:12px;border-radius:12px;background:#0b0910;border:1px solid #2b2036;display:none}@media(max-width:850px){.grid{grid-template-columns:1fr}.opts{grid-template-columns:1fr}}</style></head><body><div class="wrap"><div class="top"><div class="brand">AI Music Video</div><div class="badge">VIDEO + LIP-SYNC + B-ROLL</div></div><div class="grid"><section class="card"><h1>AI Music Video Generator</h1><div class="sub">Upload video/foto + lagu, tulis prompt, lalu siapkan workflow AI.</div><label class="label">Video / Foto</label><div class="drop"><input id="media" type="file" accept="video/*,image/*" multiple><div id="mediaInfo" class="fileinfo">Belum ada media.</div></div><label class="label">Lagu / Audio</label><div class="drop"><input id="audio" type="file" accept="audio/*"><div id="audioInfo" class="fileinfo">Belum ada audio.</div></div><label class="label">AI Controls</label><div class="opts"><div class="toggle">Lip-Sync <input id="lipsync" type="checkbox" checked></div><div class="toggle">B-Roll AI <input id="broll" type="checkbox" checked></div></div><label class="label">Resolution</label><div class="row" id="res"><button class="chip active" data-v="720p">720p</button><button class="chip" data-v="1080p">1080p</button><button class="chip" data-v="2K">2K</button><button class="chip" data-v="4K">4K</button></div><label class="label">Aspect Ratio</label><div class="row" id="ratio"><button class="chip active" data-v="9:16">9:16</button><button class="chip" data-v="16:9">16:9</button><button class="chip" data-v="1:1">1:1</button></div><label class="label">Style</label><select id="style"><option>Natural Performance</option><option>Cinematic Music Video</option><option>Concert / Live</option><option>Emotional</option><option>Energetic / Fast Cuts</option></select><label class="label">Prompt</label><textarea id="prompt" placeholder="Contoh: Performer menyanyi dengan ekspresi emosional, close-up wajah saat chorus, kamera cinematic, lampu panggung dramatis, tambahkan b-roll penonton, venue, tangan memegang mic, dan cut mengikuti beat."></textarea><button id="generate" class="generate">Generate AI Video</button><div id="status" class="small"></div><div class="bar"><i id="progress"></i></div><div id="result" class="result"></div></section><aside class="card"><div class="label" style="margin-top:0">Preview Input / Hasil</div><div id="screen" class="screen">Belum ada media.</div><p class="small">UI sudah siap untuk backend AI. Lip-sync dan B-roll generatif membutuhkan model/API AI di server.</p></aside></div></div><script>const $=x=>document.getElementById(x);let res='720p',ratio='9:16',url;function chips(id,set){document.querySelectorAll('#'+id+' .chip').forEach(b=>b.onclick=()=>{document.querySelectorAll('#'+id+' .chip').forEach(x=>x.classList.remove('active'));b.classList.add('active');set(b.dataset.v)})}chips('res',v=>res=v);chips('ratio',v=>ratio=v);$('media').onchange=()=>{let fs=[...$('media').files];$('mediaInfo').textContent=fs.length?fs.map(f=>`${f.name} (${(f.size/1048576).toFixed(1)} MB)`).join('\n'):'Belum ada media.';let f=fs[0];if(!f)return;if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(f);$('screen').innerHTML=f.type.startsWith('video/')?`<video src="${url}" controls playsinline></video>`:`<img src="${url}">`};$('audio').onchange=()=>{let f=$('audio').files[0];$('audioInfo').textContent=f?`${f.name} (${(f.size/1048576).toFixed(1)} MB)`:'Belum ada audio.'};$('generate').onclick=async()=>{let media=[...$('media').files],audio=$('audio').files[0];if(!media.length)return alert('Upload video atau foto dulu.');if(!audio)return alert('Upload lagu/audio dulu.');$('generate').disabled=true;$('status').textContent='Menyiapkan job AI...';$('progress').style.width='15%';let body={lipSync:$('lipsync').checked,bRoll:$('broll').checked,resolution:res,aspectRatio:ratio,style:$('style').value,prompt:$('prompt').value,mediaCount:media.length,audioName:audio.name};try{let r=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),d=await r.json();$('progress').style.width=d.ok?'100%':'35%';$('status').textContent=d.message||'Job dibuat.';$('result').style.display='block';$('result').innerHTML=`Job ID: <b>${d.jobId||'-'}</b><br>Status: ${d.status||'-'}<br>${d.message||''}`}catch(e){$('status').textContent='API belum aktif.';$('progress').style.width='0%'}finally{$('generate').disabled=false}};</script></body></html>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Music Video</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#09090b;color:#fff;font-family:Arial,sans-serif}
+.wrap{max-width:1100px;margin:auto;padding:24px}
+h1{margin:0 0 8px;font-size:32px}
+.sub{color:#999;margin-bottom:24px}
+.badge{display:inline-block;background:#18181b;border:1px solid #333;padding:7px 12px;border-radius:20px;font-size:12px;margin-bottom:20px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.card{background:#111113;border:1px solid #29292d;border-radius:16px;padding:20px}
+label{display:block;font-weight:bold;margin:16px 0 8px}
+input[type=file],textarea,select{width:100%;background:#18181b;color:#fff;border:1px solid #333;border-radius:10px;padding:12px}
+textarea{min-height:100px;resize:vertical}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.chip{background:#18181b;color:#aaa;border:1px solid #333;padding:9px 14px;border-radius:9px;cursor:pointer}
+.chip.active{background:#fff;color:#000}
+.check{display:flex;gap:9px;align-items:center;margin:14px 0}
+.check input{width:18px;height:18px}
+button.generate{width:100%;margin-top:20px;padding:15px;border:0;border-radius:11px;background:#fff;color:#000;font-size:16px;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.5}
+.screen{min-height:500px;background:#050505;border:1px solid #29292d;border-radius:14px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.screen video,.screen img{max-width:100%;max-height:600px}
+.info{white-space:pre-line;color:#999;font-size:13px;margin-top:8px}
+.status{margin-top:15px;color:#aaa}
+.bar{height:7px;background:#222;border-radius:10px;margin-top:10px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:#fff;transition:.3s}
+.result{margin-top:15px;padding:14px;background:#18181b;border-radius:10px;display:none}
+.result a{color:#fff}
+@media(max-width:800px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+<h1>AI Music Video</h1>
+<div class="sub">Create music videos with AI lip-sync.</div>
+<div class="badge">VIDEO + LIP-SYNC + B-ROLL</div>
+
+<div class="grid">
+
+<div class="card">
+
+<label>Upload Video / Foto</label>
+<input id="media" type="file" accept="video/*,image/*">
+<div id="mediaInfo" class="info">Belum ada media.</div>
+
+<label>Upload Lagu / Audio</label>
+<input id="audio" type="file" accept="audio/*">
+<div id="audioInfo" class="info">Belum ada audio.</div>
+
+<div class="check">
+<input id="lipsync" type="checkbox" checked>
+<span>AI Lip-Sync</span>
+</div>
+
+<div class="check">
+<input id="broll" type="checkbox" checked>
+<span>AI B-Roll</span>
+</div>
+
+<label>Resolution</label>
+<div class="row" id="res">
+<button class="chip active" data-v="720p">720p</button>
+<button class="chip" data-v="1080p">1080p</button>
+<button class="chip" data-v="2K">2K</button>
+<button class="chip" data-v="4K">4K</button>
+</div>
+
+<label>Aspect Ratio</label>
+<div class="row" id="ratio">
+<button class="chip active" data-v="9:16">9:16</button>
+<button class="chip" data-v="16:9">16:9</button>
+<button class="chip" data-v="1:1">1:1</button>
+</div>
+
+<label>Style</label>
+<select id="style">
+<option>Natural Performance</option>
+<option>Cinematic Music Video</option>
+<option>Concert / Live</option>
+<option>Emotional</option>
+<option>Energetic / Fast Cuts</option>
+</select>
+
+<label>Prompt</label>
+<textarea id="prompt" placeholder="Contoh: cinematic music video, dramatic lighting, smooth camera movement..."></textarea>
+
+<button id="generate" class="generate">Generate AI Video</button>
+
+<div id="status" class="status"></div>
+<div class="bar"><i id="progress"></i></div>
+<div id="result" class="result"></div>
+
+</div>
+
+<div class="card">
+<div id="screen" class="screen">
+<span style="color:#666">Preview video / foto akan muncul di sini</span>
+</div>
+</div>
+
+</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+let resolution="720p";
+let ratio="9:16";
+
+function chips(id,setter){
+  document.querySelectorAll("#"+id+" .chip").forEach(btn=>{
+    btn.onclick=()=>{
+      document.querySelectorAll("#"+id+" .chip")
+      .forEach(x=>x.classList.remove("active"));
+
+      btn.classList.add("active");
+      setter(btn.dataset.v);
+    };
+  });
+}
+
+chips("res",v=>resolution=v);
+chips("ratio",v=>ratio=v);
+
+function fileToDataURL(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+let previewURL=null;
+
+$("media").onchange=()=>{
+  const file=$("media").files[0];
+
+  if(!file){
+    $("mediaInfo").textContent="Belum ada media.";
+    return;
+  }
+
+  $("mediaInfo").textContent=
+    `${file.name} (${(file.size/1048576).toFixed(1)} MB)`;
+
+  if(previewURL) URL.revokeObjectURL(previewURL);
+
+  previewURL=URL.createObjectURL(file);
+
+  $("screen").innerHTML=
+    file.type.startsWith("video/")
+    ? `<video src="${previewURL}" controls playsinline></video>`
+    : `<img src="${previewURL}">`;
+};
+
+$("audio").onchange=()=>{
+  const file=$("audio").files[0];
+
+  $("audioInfo").textContent=
+    file
+    ? `${file.name} (${(file.size/1048576).toFixed(1)} MB)`
+    : "Belum ada audio.";
+};
+
+$("generate").onclick=async()=>{
+
+  const mediaFile=$("media").files[0];
+  const audioFile=$("audio").files[0];
+
+  if(!mediaFile){
+    alert("Upload video dulu.");
+    return;
+  }
+
+  if(!audioFile){
+    alert("Upload lagu/audio dulu.");
+    return;
+  }
+
+  if(!mediaFile.type.startsWith("video/")){
+    alert("Untuk tahap ini gunakan VIDEO. Foto akan kita aktifkan setelahnya.");
+    return;
+  }
+
+  $("generate").disabled=true;
+  $("status").textContent="Mengupload file ke AI...";
+  $("progress").style.width="20%";
+
+  try{
+
+    const video=await fileToDataURL(mediaFile);
+
+    $("progress").style.width="45%";
+
+    const audio=await fileToDataURL(audioFile);
+
+    $("progress").style.width="65%";
+
+    const body={
+      video:video,
+      audio:audio
+    };
+
+    const response=await fetch("/api/generate",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify(body)
+    });
+
+    const data=await response.json();
+
+    if(!response.ok || !data.ok){
+      throw new Error(data.message || "Generate gagal.");
+    }
+
+    $("progress").style.width="100%";
+    $("status").textContent="Video selesai dibuat!";
+
+    $("result").style.display="block";
+
+    $("result").innerHTML=`
+      <b>AI Video berhasil dibuat.</b><br><br>
+      <a href="${data.output}" target="_blank">
+        Buka / lihat video hasil AI
+      </a>
+    `;
+
+  }catch(error){
+
+    console.error(error);
+
+    $("progress").style.width="0%";
+    $("status").textContent="Gagal membuat video.";
+
+    $("result").style.display="block";
+    $("result").innerHTML=
+      `<b>Error:</b> ${error.message}`;
+
+  }finally{
+
+    $("generate").disabled=false;
+
+  }
+};
+</script>
+
+</body>
+  </html>
