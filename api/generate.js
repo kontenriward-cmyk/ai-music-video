@@ -11,14 +11,23 @@ export default async function handler(req, res) {
   }
 
   try {
-    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
 
-    // 1. PENANGANAN VERCEL BLOB UPLOAD
+    // 1. PENANGANAN UPLOAD VERCEL BLOB
     if (req.query.action === "upload") {
+      // Konstruksi Request Web Standard dari req Node.js
+      const protocol = req.headers["x-forwarded-proto"] || "https";
+      const host = req.headers["x-forwarded-host"] || req.headers.host;
+      const webRequest = new Request(`${protocol}://${host}${req.url}`, {
+        method: req.method,
+        headers: new Headers(req.headers),
+        body: JSON.stringify(body),
+      });
+
       const jsonResponse = await handleUpload({
         body,
-        request: req,
-        token: process.env.BLOB_READ_WRITE_TOKEN, // Opsional tapi direkomendasikan
+        request: webRequest, // Gunakan webRequest yang di-construct
+        token: process.env.BLOB_READ_WRITE_TOKEN,
         onBeforeGenerateToken: async () => ({
           allowedContentTypes: [
             "video/mp4", "video/webm", "video/quicktime",
@@ -37,7 +46,7 @@ export default async function handler(req, res) {
     }
 
     // 2. PENANGANAN REPLICATE
-    const { video, audio } = body || {};
+    const { video, audio } = body;
 
     if (!video || !audio) {
       return res.status(400).json({
@@ -47,19 +56,18 @@ export default async function handler(req, res) {
     }
 
     const output = await replicate.run("sync/lipsync-2", {
-      input: {
-        video,
-        audio,
-        sync_mode: "loop",
-      },
+      input: { video, audio, sync_mode: "loop" },
     });
 
-    // Menangani penanganan URL output Replicate dengan aman
-    let outputUrl = output;
-    if (Array.isArray(output)) {
-      outputUrl = output[0];
-    } else if (typeof output === "object" && output?.url) {
-      outputUrl = typeof output.url === "function" ? output.url() : output.url;
+    let outputUrl = "";
+    if (typeof output === "string") {
+      outputUrl = output;
+    } else if (Array.isArray(output) && output.length > 0) {
+      outputUrl = String(output[0]);
+    } else if (output && typeof output.url === "function") {
+      outputUrl = output.url().href || String(output.url());
+    } else if (output?.url) {
+      outputUrl = String(output.url);
     } else {
       outputUrl = String(output);
     }
@@ -71,7 +79,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error("ERROR:", error);
+    console.error("ERROR HANDLER:", error);
     return res.status(500).json({
       ok: false,
       message: error?.message || "Terjadi kesalahan server.",
